@@ -4,23 +4,17 @@ from pygame.locals import *
 if len(sys.argv) == 2:
     numcells = int(sys.argv[1])
 else:
-    numcells = 31
+    numcells = 40
 
 def main():
-    G_Screen = pygame.display.set_mode((310,50))
+    G_Screen = pygame.display.set_mode((400,400))
     G_Screen.fill([0xff,0xff,0xff])
     cwidth = G_Screen.get_width()/numcells
     cheight = G_Screen.get_height()
-    cellRects = []
-    for col in range(numcells):
-        cellRects.append(pygame.Rect(col*cwidth, 0, cwidth, cheight))
     board = WolframArray(numcells)
-    board.setAlive(1)
-    board.setAlive(2)
-    board.setAlive(3)
+    display = CADisplay(G_Screen, board)
     execSpeed = 100
     while 1:
-        G_Screen.fill([0,0,0])
         for event in pygame.event.get():
             if event.type == KEYDOWN:
                 if event.key == K_q:
@@ -35,12 +29,34 @@ def main():
                     execSpeed = 200
             elif event.type == QUIT:
                 sys.exit()
+        display.update()
+
+class CADisplay:
+    def __init__(self, screen, board):
+        self.screen = screen
+        self.screen.fill([0,0,0])
+        self.board = board
+        cwidth = screen.get_width()/board.numcells
+        cheight = screen.get_height()/board.numcells
+        self.histlen = screen.get_height()/cheight
+        self.rects = []
+        #History rects
+        for i in range(self.histlen):
+            self.rects.append(pygame.Rect(0, cheight*i, screen.get_width(), cheight))
+        #Current cell rects
+        self.cellRects = []
         for col in range(numcells):
-            alive = board.isAlive(col)
-            pygame.draw.rect(G_Screen, (0, 0xff*alive, 0), cellRects[col])
-        board.step()
+            self.cellRects.append(pygame.Rect(col*cwidth, screen.get_height()-cheight, cwidth, cheight))
+    def update(self):
+        for i in range(self.histlen-1):
+            self.screen.blit(self.screen, self.rects[i], self.rects[i+1])
+        self.screen.fill([0,0,0], self.rects[-1])
+        for col in range(numcells):
+            alive = self.board.isAlive(col)
+            pygame.draw.rect(self.screen, (0, 0xff*alive, 0), self.cellRects[col])
+        self.board.step()
         pygame.display.flip()
-        pygame.time.wait(execSpeed)
+        pygame.time.wait(100)
 
 class WolframArray:
     def __init__(self, numcells):
