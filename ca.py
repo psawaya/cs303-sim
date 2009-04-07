@@ -1,4 +1,4 @@
-import pygame, numarray, random, sys
+import pygame, random, sys
 from pygame.locals import *
 
 if len(sys.argv) == 2:
@@ -45,7 +45,7 @@ def main():
 class WolframArray:
     def __init__(self, numcells):
         self.numcells = numcells
-        self.cells = numarray.zeros(self.numcells)
+        self.cells = [0]*self.numcells
     def neighborCount(self, row):
         return sum(self.getNeighbors(row))
     def getNeighbors(self, col):
