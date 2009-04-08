@@ -12,7 +12,7 @@ def main():
     cwidth = G_Screen.get_width()/numcells
     cheight = G_Screen.get_height()
     board = WolframArray(numcells)
-    display = CADisplay(G_Screen, board)
+    display = CADisplay(G_Screen, board, fancy=True)
     execSpeed = 100
     while 1:
         for event in pygame.event.get():
@@ -32,10 +32,13 @@ def main():
         display.update()
 
 class CADisplay:
-    def __init__(self, screen, board):
+    def __init__(self, screen, board, fancy=True):
         self.screen = screen
-        self.screen.fill([0,0,0])
         self.board = board
+        self.fancy = fancy
+        if self.fancy:
+            self.screen.set_alpha(210)
+        self.screen.fill([0,0,0])
         cwidth = screen.get_width()/board.numcells
         cheight = screen.get_height()/board.numcells
         self.histlen = screen.get_height()/cheight
@@ -49,7 +52,11 @@ class CADisplay:
             self.cellRects.append(pygame.Rect(col*cwidth, screen.get_height()-cheight, cwidth, cheight))
     def update(self):
         for i in range(self.histlen-1):
+            self.screen.fill([0,0,0], self.rects[i])
             self.screen.blit(self.screen, self.rects[i], self.rects[i+1])
+            #Double blit necessary for fancy screen!
+            if self.fancy:
+                self.screen.blit(self.screen, self.rects[i], self.rects[i+1])
         self.screen.fill([0,0,0], self.rects[-1])
         for col in range(numcells):
             alive = self.board.isAlive(col)
