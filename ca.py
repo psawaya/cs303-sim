@@ -29,6 +29,7 @@ def main():
                                            "-":board.setDead,
                                            "print":board.toString,
                                            "rand":board.randomize,
+                                           "setspectorstr":board.setRule,
                                            "stop":display.stop,
                                            "start":display.run,
                                            "step":display.step},
@@ -128,6 +129,9 @@ class WolframArray:
     def __init__(self, numcells):
         self.numcells = numcells
         self.cells = [0]*self.numcells
+        
+        #This rule only shifts living cells to the left and leaves the rest alone
+        self.rulesTable = ['C','C','L','L','C','C','L','L']
     def toString(self):
         return ''.join(str(i) for i in self.cells)
     def neighborCount(self, row):
@@ -136,11 +140,14 @@ class WolframArray:
         neighbors = [self.cellAt(col-1), self.cellAt(col+1)]
         return neighbors
     def cellAt(self, col):
-        if col < 0:
+		cellIdx = self.wrapCell (col)
+		return self.cells[cellIdx]
+    def wrapCell(self, col):
+    	if col < 0:
             col = self.numcells-1
         elif col >= self.numcells:
             col = 0
-        return self.cells[col]
+        return col
     def setAlive(self, col):
         """Turn the specified cell on"""
         self.cells[col] = 1
@@ -149,23 +156,36 @@ class WolframArray:
         self.cells[col] = 0
     def isAlive(self, col):
         return bool(self.cells[col])
+    def setState (self, col, state):
+    	self.cells[col] = state
     def randomize(self):
         """Randomize the display"""
         for r in range(numcells):
             self.cells[r] = random.randint(0,1)
+    def swapCells (self,cellA, cellB):
+    	oldA = self.isAlive (cellA)
+    	self.setState(cellA, self.isAlive (cellB))
+    	self.setState (cellB, oldA)
     def step(self):
-        pass
-        #ctemp = self.cells.copy()
-        #for c in range(numcells):
-        #    n = self.neighborCount(c)
-            # Rules go here
-            #if self.isAlive(c):
-                #if n < 2 or n > 3:
-                    #ctemp[c] = 0
-            #else:
-                #if n == 3:
-                    #ctemp[c] = 1
-        #    self.cells = ctemp
+    	#For now, just update one cell per step
+    	col = random.randint (0,self.numcells-1)
+    	ruleToUseIdx = self.cellAt (col-1) + self.cellAt(col) * 2 + self.cellAt(col+1) * 4
+    	ruleToUse = self.rulesTable[ruleToUseIdx]
+    	if ruleToUse.upper() == 'L':
+    		self.swapCells (self.wrapCell(col-1),self.wrapCell(col))
+    	elif ruleToUse.upper() == 'R':
+    		self.swapCells (self.wrapCell(col),self.wrapCell(col+1))
+		#if ruletouse == 'c', do absolutely nothing!
+    def setRule(self,ruleStr):
+    	if len(ruleStr) != 8:
+    		#make console a global/pass ref to wolframArray so that we can show this to the user?
+			print ("ERROR: requires 8 character string.")
+			return
+    	
+    	for idx in range (len(ruleStr)):
+    		self.rulesTable[idx] = ruleStr[idx]   
+ 	
+    	return
 
 
 if __name__ == "__main__":
