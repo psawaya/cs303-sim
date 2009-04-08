@@ -1,3 +1,19 @@
+#     CS303 Cellular Automata Simulator
+#     Copyright (C) 2009 Hampshire College CS303
+#     
+#     This program is free software: you can redistribute it and/or modify
+#     it under the terms of the GNU General Public License as published by
+#     the Free Software Foundation, either version 3 of the License, or
+#     (at your option) any later version.
+#     
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+#     
+#     You should have received a copy of the GNU General Public License
+#     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 import sys
 import random
 import pyconsole
@@ -10,6 +26,7 @@ if len(sys.argv) == 2:
 else:
     numcells = 40
 
+## Global constants ##
 bgcolor = [0x00, 0x00, 0x00] # Background
 bocolor = [0x10, 0x10, 0x10] # Border
 fgcolor = [0x00, 0xff, 0x00] # Foreground
@@ -34,7 +51,7 @@ def main():
                                            "start":display.run,
                                            "step":display.step},
                                 key_calls={"d":sys.exit})
-    delay = 100
+    delay = 100 #milliseconds
     while 1:
         console.process_input()
         #Handle Events
@@ -50,6 +67,9 @@ def main():
                 # r randomizes the display
                 elif event.key == K_r:
                     board.randomize()
+                # s steps the simulator
+                elif event.key == K_s:
+                    display.step()
                 # 1 sets the sim speed to slow
                 elif event.key == K_1:
                     delay = 200
@@ -140,20 +160,16 @@ class WolframArray:
         neighbors = [self.cellAt(col-1), self.cellAt(col+1)]
         return neighbors
     def cellAt(self, col):
-		cellIdx = self.wrapCell (col)
-		return self.cells[cellIdx]
+        # % numcells for torroidal display:
+        return self.cells[col % self.numcells]
     def wrapCell(self, col):
-    	if col < 0:
-            col = self.numcells-1
-        elif col >= self.numcells:
-            col = 0
-        return col
+        return col % self.numcells
     def setAlive(self, col):
         """Turn the specified cell on"""
-        self.cells[col] = 1
+        self.cells[self.wrapCell(col)] = 1
     def setDead(self, col):
         """Turn the specified cell on"""
-        self.cells[col] = 0
+        self.cells[self.wrapCell(col)] = 0
     def isAlive(self, col):
         return bool(self.cells[col])
     def setState (self, col, state):
@@ -178,14 +194,10 @@ class WolframArray:
 		#if ruletouse == 'c', do absolutely nothing!
     def setRule(self,ruleStr):
     	if len(ruleStr) != 8:
-    		#make console a global/pass ref to wolframArray so that we can show this to the user?
-			print ("ERROR: requires 8 character string.")
-			return
-    	
+            # Pyconsole echos return values :)
+            return "ERROR: requires 8 character string."
     	for idx in range (len(ruleStr)):
-    		self.rulesTable[idx] = ruleStr[idx]   
- 	
-    	return
+            self.rulesTable[idx] = ruleStr[idx]   
 
 
 if __name__ == "__main__":

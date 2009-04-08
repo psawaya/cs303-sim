@@ -22,7 +22,7 @@
 import pygame, os, sys 
 from pygame.locals import *
 
-import re 		# Python's Regexp library. Used in pyconsole for parsing
+import re 		# Python's Regexp library. Used in pyconsole for parsing input
 import textwrap # Used for proper word wrapping
 from string import ascii_letters
 from code import InteractiveConsole		# Gives us access to the python interpreter
@@ -172,8 +172,14 @@ class Console:
 		'''
 		self.init_default_cfg()
 		if os.path.exists(cfg_path):
+                        prevline = []
 			for line in file(cfg_path):
-				tokens = self.tokenize(line)
+                                line = line.strip()
+                                if line and line[-1] == "\\":
+                                    prevline.append(line[:-1])
+                                    continue
+				tokens = self.tokenize(''.join(prevline) + line)
+                                prevline = []
 				if re_is_comment.match(line):
 					continue
 				elif len(tokens) != 2:
@@ -400,7 +406,11 @@ class Console:
 			if not out == None:
 				self.output(out)
 		except (KeyError,TypeError):
-			self.output("Unknown Command: " + str(tokens[0]))
+                        if len(tokens) >= 2:
+                            self.output("Unknown Command: " + str(tokens[0]) + \
+                                    ", ".join([str(type(x)) for x in tokens[1:]]))
+                        else:
+                            self.output("Unknown Command: " + str(tokens[0]))
 			self.output(r'Type "help" for a list of commands.')
 			
 	
