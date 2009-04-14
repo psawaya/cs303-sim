@@ -43,6 +43,12 @@ class BaseCA(object):
     def updateOrder(self):
         for i in range(self.numcells):
             yield i
+    def getRuleForCell(self, col):
+        """Returns the rule which corresponds to the cell at col"""
+        ruleToUseIdx = (not self.cellAt(col-1))*4 + \
+                       (not self.cellAt(col))*2 + \
+                       (not self.cellAt(col+1))
+        return self.rulesTable[ruleToUseIdx]
     def step(self):
         pass
     def setRule(self,rule):

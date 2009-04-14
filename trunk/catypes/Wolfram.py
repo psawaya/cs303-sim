@@ -6,19 +6,12 @@ class Wolfram(BaseCA):
         super(Wolfram, self).__init__(numcells)
         #The famed rule 30
         self.setRule(30)
-    def wrapCell(self, col):
-        return col % self.numcells
     def step(self):
     	#For now, just update one cell per step
         tmp = []
         for col in self.updateOrder():
-            ruleToUseIdx = (not self.cellAt(col-1))*4 + \
-                            (not self.cellAt(col))*2 + (not self.cellAt(col+1))
-            ruleToUse = self.rulesTable[ruleToUseIdx]
-            if ruleToUse == '1':
-                tmp.append(1)
-            elif ruleToUse == '0':
-                tmp.append(0)
+            ruleToUse = self.getRuleForCell(col)
+            tmp.append(int(ruleToUse))
         self.cells = tmp
     def setRule(self,rule):
         if isinstance(rule, int):
