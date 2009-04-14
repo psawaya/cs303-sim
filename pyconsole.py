@@ -88,7 +88,8 @@ def balanced(t):
 	return not bool(stack)
 	
 class Console:
-	def __init__(self, screen, rect, functions={}, key_calls={}, vars={}, syntax={}):
+	def __init__(self, screen, rect, sched_func=None,
+                           functions={}, key_calls={}, vars={}, syntax={}):
 		if not pygame.display.get_init():
 			raise pygame.error, "Display not initialized. Initialize the display before creating a Console"
 		
@@ -103,6 +104,7 @@ class Console:
 		self.user_syntax = syntax
 		self.user_namespace = {}
 		
+                self.sched = sched_func
 		self.variables = {\
 				"bg_alpha":int,\
 				"bg_color": list,\
@@ -398,7 +400,10 @@ class Console:
 				self.setvar(assign.group('name'), tokens[0])
 			else:
 				# Function
-				out = self.func_calls[tokens[0]](*tokens[1:])
+                                if self.sched:
+                                    out = self.sched(self.func_calls[tokens[0]], tokens[1:])
+                                else:
+                                    out = self.func_calls[tokens[0]](*tokens[1:])
 				# Assignment from function's return value
 				if assign:
 					self.setvar(assign.group('name'), out)
@@ -549,7 +554,10 @@ class Console:
 					mods = pygame.key.get_mods()
 					if mods & KMOD_CTRL:
 						if event.key in range(256) and chr(event.key) in self.key_calls:
-							self.key_calls[chr(event.key)]()
+                                                        if self.sched:
+                                                            self.sched(self.key_calls[chr(event.key)])
+                                                        else:
+                                                            self.key_calls[chr(event.key)]()
 					else:
 						char = str(event.unicode)
 						self.c_in = self.str_insert(self.c_in, char)
