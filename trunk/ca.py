@@ -58,16 +58,10 @@ class CAEnvironment(object):
         self.tasks = []
 
         self.doneflag = Event()
-        def eventLoop(doneflag):
-            while not doneflag.isSet():
-                self.handleInput()
-                self.drawConsole()
-                self.doneflag.wait(0.016)
-                #pygame.time.wait(16)
-        ## Start the event loop
-        self.e = Thread(target=eventLoop, args=[self.doneflag])
+       ## Start the event loop
+        self.e = Thread(target=self.main, args=[self.doneflag])
         self.e.start()
-        self.main()
+        self.eventLoop(self.doneflag)
 
     def drawConsole(self):
         self.console.draw()
@@ -81,7 +75,10 @@ class CAEnvironment(object):
 
     def quit(self):
         self.doneflag.set()
-        self.e.join()
+        try:
+            self.e.join()
+        except RuntimeError:
+            pass
         sys.exit()
 
     def sched(self, method, args=[]):
@@ -104,7 +101,7 @@ class CAEnvironment(object):
         traceback.print_exc(file=sys.stdout)
         print '-'*60
 
-    def main(self):
+    def main(self, doneflag):
         try:
             while not self.doneflag.isSet():
                 self.pop_external_tasks()
@@ -117,6 +114,13 @@ class CAEnvironment(object):
         except:
             self.error("Exception in main loop")
             self.quit()
+
+    def eventLoop(self, doneflag):
+        while not doneflag.isSet():
+            self.handleInput()
+            self.drawConsole()
+            self.doneflag.wait(0.016)
+            #pygame.time.wait(16)
 
     def handleInput(self):
         """Runs in its own thread"""
