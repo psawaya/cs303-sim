@@ -17,6 +17,7 @@
 from BaseCA import BaseCA, TorroidalCA
 from Wolfram import Wolfram
 from SpectorMachine import SpectorMachine
+from Nasch import Nasch
 
 #Hack, probably not perfect but availCAs is only used to check that
 #the user has provided a CA class at the command line.
