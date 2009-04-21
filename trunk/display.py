@@ -73,8 +73,21 @@ class CADisplay:
         #Copy new data into the display
         for col in range(self.dispNum):
             actualPos = self.cellOffset + col
-            alive = self.board.isAlive(actualPos)
-            if alive:
-                pygame.draw.rect(self.screen, fgcolor, self.cellRects[actualPos])
+            #hack to display nasch automata correctly
+            shouldDraw = self.board.drawCell(actualPos)
+            if shouldDraw:
+				shapeToDraw = self.board.shapeToDraw (col)
+				if shapeToDraw == 'square':
+					pygame.draw.rect(self.screen, fgcolor, self.cellRects[actualPos])
+				elif shapeToDraw == 'circle':
+					newFgColor = []
+					#TODO: make this more logical, so that color shades apply to non-circles
+					for fgComponent in fgcolor:
+						adjustedVal = fgComponent*self.board.getState (col) / self.board.highestState
+						""" Don't want to become too dark... """
+						newFgColor.append (min (adjustedVal + 0.2 * fgComponent,255))
+					cellRect = self.cellRects[actualPos]
+					center = [cellRect[0] + cellRect[2]/2, cellRect[1] + cellRect[3]/2]
+					pygame.draw.circle (self.screen, newFgColor, center, cellRect[3]/2)
         #Step the simulation
         self.board.step()
