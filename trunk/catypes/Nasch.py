@@ -9,75 +9,72 @@ class Nasch(TorroidalCA):
         self.randomization = 0.5
         self.randomRule()
     def drawCell (self, col):
-    	if self.ruleStr[col] == 'N': #unlike wolfram/spector, we always want to draw every node cell
-    		return True
-    	
-    	return self.cells[col] != 0
+        if self.ruleStr[col] == 'N': #unlike wolfram/spector, we always want to draw every node cell
+            return True
+        return self.cells[col] != 0
+    def incCell(self, col, amt=1):
+        self.setState(col, self.getState(col)+amt)
+    def decCell(self, col, amt=1):
+        self.setState(col, self.getState(col)-amt)
+    def emitMessageFrom(self, col):
+        self.decCell(col)   # Take a message from col
+        self.incCell(col+1) # and move it to the right
+    def updateOrder(self):
+        #NOTE: order is reversed to prevent avalanche effect.
+        #If you want non-sequential order you'll have to change the step
+        #method so that cells don't emit messages during the same generation
+        #they receive them.
+        return xrange(self.numcells-1,-1,-1)
     def step(self):
-    	#For now, just update one cell per step
-        tmp = []
-        """ Nodes decide to emit packets randomly, iterate through cells and decide which ones will first """
-        willEmit = {}
+        willEmit = {} # {column number:True|False}
+        # Iterate through cells and randomly select nodes to emit
         for col in range(self.numcells):
-        	#cells with state 0 have nothing to emit
-        	if self.ruleStr[col] == 'N' and self.cells[col] > 0:
-        		willEmit[col] = bool(random.random() < self.randomization)
+            #Cell must have messages in its queue
+            if self.ruleStr[col] == 'N' and self.cells[col] > 0:
+                willEmit[col] = bool(random.random() < self.randomization)
         for col in self.updateOrder():
-        	leftCell = self.wrapCell(col-1)
-        	leftCellWillEmit = self.getState(col-1) > 0 and (self.ruleStr[leftCell] == 'L' or willEmit[leftCell])
-        	if self.ruleStr[col] == 'N':
-        		if self.getState(col) < self.highestState and leftCellWillEmit:
-        			tmp.append (self.getState(col) + 1) #get packet from neighbor to left
-        			continue
-        		if self.getState(col) > 0: #Are there packets in my queue? Have I decided to emit?
-					if self.maxPacketsForCell (col+1) and willEmit[col]: #if so, release one
-						tmp.append (self.getState(col)-1)
-					else: #otherwise, stay the same
-						tmp.append (self.getState(col))
-			else:
-				tmp.append (0) #waiting for packets...
-        	else:
-				if self.getState (col) == 0: #link cell, currently empty
-					if leftCellWillEmit:
-						tmp.append (1)
-					else:
-						tmp.append (0)
-				else: #link cell, currently full
-					if self.getState (col+1) < self.maxPacketsForCell (col+1):
-						tmp.append(0)
-					else:
-						tmp.append(1)
-        self.cells = tmp
+            # A node emits when:
+            #       1) it was selected in last step,
+            #       2) it's loaded*, 
+            #       3) and its neighbor is accepting^
+            # A link emits when:
+            #       1) it's loaded*,
+            #       2) and its neighbor is accepting^
+            # * cell has message(s) in queue
+            # ^ cell has space in queue for more messages
+            emittingNode = willEmit.get(col,False) and \
+                           self.getState(col+1) < self.highestState
+            emittingLink = self.ruleStr[col] == 'L' and self.getState(col) > 0
+            if emittingNode or emittingLink:
+                self.emitMessageFrom(col)
     def maxPacketsForCell(self,col):
-    	typeOfNode = self.ruleStr[self.wrapCell(col)]
-    	packetLimit = { 'L' : 1, 'N' : self.highestState}[typeOfNode]
-    	return packetLimit
+        typeOfNode = self.ruleStr[self.wrapCell(col)]
+        packetLimit = { 'L' : 1, 'N' : self.highestState}[typeOfNode]
+        return packetLimit
     def randomize(self):
-    	self.randomizePercent(10) #10% of packet capacity
+        self.randomizePercent(10) #10% of packet capacity
     def randomizePercent(self, percentDistribution):
-		packetCapacity = 0
-		""" calculate packet capacity, and reset grid while we're at it. """
-		for col in range (self.numcells):
-			self.cells[col] = 0
-			typeOfNode = self.ruleStr[col]
-			packetCapacity += { 'L' : 1, 'N' : self.highestState}[typeOfNode]
-		""" we'll have this number of packets propagate through the system """
-		numPackets = percentDistribution/100.0*packetCapacity 
-		curPackets = 1
-		cellToFill = 0
-		while curPackets < numPackets:
-			cellToFill = random.randint (0,self.numcells-1)
-			if self.getState (cellToFill) < self.maxPacketsForCell (cellToFill):
-				self.cells[cellToFill] +=1
-				curPackets +=1
+        packetCapacity = 0
+        # calculate packet capacity, and reset grid while we're at it.
+        for col in range (self.numcells):
+            self.cells[col] = 0
+            typeOfNode = self.ruleStr[col]
+            packetCapacity += { 'L' : 1, 'N' : self.highestState}[typeOfNode]
+        # we'll have this number of packets propagate through the system
+        numPackets = percentDistribution/100.0*packetCapacity 
+        curPackets = 1
+        cellToFill = 0
+        while curPackets < numPackets:
+            cellToFill = random.randint (0,self.numcells-1)
+            if self.getState (cellToFill) < self.maxPacketsForCell (cellToFill):
+                self.cells[cellToFill] +=1
+                curPackets +=1
     def shapeToDraw(self, cell):
-    	return {'N' : 'circle', 'L' : 'square' } [self.ruleStr[cell]]
-    def getState(self, col):
-    	return self.cells[self.wrapCell (col)]
+        return {'N' : 'circle', 'L' : 'square' } [self.ruleStr[cell]]
     def randomRule(self):
         self.ruleStr = ""
         for i in range (self.numcells):
-        	self.ruleStr += {0 : 'N', 1 : 'L'}[random.randint(0,1)]
+            self.ruleStr += {0 : 'N', 1 : 'L'}[random.randint(0,1)]
     def setRule(self,rule):
         if isinstance(rule, int):
             # Int -> rule string (array of '1' and '0' characters)

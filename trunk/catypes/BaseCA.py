@@ -18,7 +18,7 @@ class BaseCA(object):
             return 0
         return self.cells[col]
     def getState (self, col):
-    	return isAlive (col)
+    	return isAlive(col)
     def setState (self, col, state):
     	self.cells[col] = state
     def setAlive(self, col):
@@ -70,3 +70,7 @@ class TorroidalCA(BaseCA):
         return col % self.numcells
     def cellAt(self, col):
         return self.cells[self.wrapCell(col)]
+    def getState(self, col):
+        return self.cells[self.wrapCell(col)]
+    def setState(self, col, state):
+        self.cells[self.wrapCell(col)] = state
