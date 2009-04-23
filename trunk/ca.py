@@ -37,9 +37,8 @@ class CAEnvironment(object):
         self.display = CADisplay(self.D_Screen, self.board, fancy=fancy)
         ## Create a surface to draw the console on and the console object
         self.C_Screen = pygame.Surface((screenW, screenH/4))
-        self.console = pyconsole.Console(self.C_Screen,
-                                    (0,0,screenW, screenH/4), self.sched,
-                                    functions={"+":self.board.setAlive,
+        
+        defaultFuncs = {"+":self.board.setAlive,
                                                "-":self.board.setDead,
                                                "print":self.board.toString,
                                                "rand":self.board.randomize,
@@ -50,7 +49,14 @@ class CAEnvironment(object):
                                                "stop":self.display.stop,
                                                "start":self.display.run,
                                                "step":self.display.step,
-                                               "quit":self.quit},
+                                               "quit":self.quit}
+        
+        consoleFuncs = defaultFuncs
+        consoleFuncs.update (self.board.returnSpecificFunctions())
+        
+        self.console = pyconsole.Console(self.C_Screen,
+                                    (0,0,screenW, screenH/4), self.sched,
+                                    functions=consoleFuncs,
                                     key_calls={"d":self.quit})
         ## Number of milliseconds to wait between generations
         self.delay = 100
