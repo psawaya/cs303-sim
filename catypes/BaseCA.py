@@ -7,6 +7,8 @@ class BaseCA(object):
         self.validRules = ['0','1'] # Always put Null/Zero state first!
         self.rulesTable = ['0','0','0','0','0','0','0','0']
         self.highestState = 1
+    def returnSpecificFunctions(self):
+    	return {} #nothing specific about a general class!
     def toString(self):
         return ''.join(str(int(i)) for i in self.cells)
     def shapeToDraw(self, cell):
