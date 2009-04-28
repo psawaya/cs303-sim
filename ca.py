@@ -14,6 +14,8 @@
 #     You should have received a copy of the GNU General Public License
 #     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#add start/stop collecting data commands, for n generations, spit results out into file
+
 import sys
 import pyconsole
 import pygame

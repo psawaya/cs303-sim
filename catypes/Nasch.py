@@ -5,13 +5,50 @@ class Nasch(TorroidalCA):
     def __init__(self, numcells):
         super(Nasch, self).__init__(numcells)
         self.validRules = ['L','N']
-        self.highestState = 10 #Applies to 'N' cells only
+        self.highestState = 3 #Applies to 'N' cells only
         self.randomization = 0.5
         self.randomRule()
+        self.asyncUpdate = True
+        self.countingFlux = False
+        self.fluxCount = 0
+        self.fluxValue = 0 #the flux value as it changes
+        self.doingReport = False
     def returnSpecificFunctions(self):
     	return {'randompercent' : self.randomizePercent,
     	'setrandomization' : self.setRandomization, 
-    	'setnodedistpercent' : self.setNodeDist}
+    	'setnodedistpercent' : self.setNodeDist,
+    	 'setasync' : self.setAsync,
+    	 'beginfluxcount' : self.beginFluxCount,
+    	 'genreport' : self.beginReport}
+    def beginReport(self, param, start, end, step, filename):
+    	self.doingReport = True
+    	self.reportParamType = param
+    	self.reportParam = start
+    	self.reportParamStart = start
+    	self.reportParamEnd = end
+    	self.reportParamStep = step
+    	self.reportFilename = filename
+    	self.setParam (param, start)
+    	reportFile = open (filename + '.csv', 'w')
+    	reportFile.write ('') #clear the report file first
+    	reportFile.close()
+    	self.beginFluxCount (200) 
+    def setParam(self,param, value):
+        #for now, random packet density percent is only param
+        self.randomizePercent (value)
+    def beginFluxCount(self, generations):
+    	try:
+	    	self.fluxCell = self.ruleStr.index ('L') #which cell we're using to calc flux
+        except ValueError:
+        	return "ERROR: There are no link cells." #TODO: find out why this won't appear on the console
+    	self.countingFlux = True
+    	self.fluxCount = 0 #count the number of generations we sampled
+    	self.fluxValue = 0	    	
+    	self.fluxCellLast = self.getState (self.fluxCell)
+    	print "flux cell is of type: " + str (self.ruleStr[self.fluxCell])
+    	self.fluxGenerations = generations
+    def setAsync(self,setTo):
+    	self.asyncUpdate = (setTo == 'on')
     def setNodeDist(self,nodeDistPercent):
 		newRules = ['L'] * self.numcells
 		numberNodeCells = int (nodeDistPercent / 100.0 * self.numcells)
@@ -40,9 +77,12 @@ class Nasch(TorroidalCA):
         #If you want non-sequential order you'll have to change the step
         #method so that cells don't emit messages during the same generation
         #they receive them.
-        update = range(self.numcells-1,-1,-1)
-        random.shuffle (update)
-        return update
+        if self.asyncUpdate:
+			update = range(self.numcells-1,-1,-1)
+#			random.shuffle (update)
+			return update
+        else:
+            return xrange(self.numcells-1,-1,-1)
     def step(self):
         willEmit = {} # {column number:True|False}
         # Iterate through cells and randomly select nodes to emit
@@ -50,7 +90,8 @@ class Nasch(TorroidalCA):
             #Cell must have messages in its queue
             if self.ruleStr[col] == 'N' and self.cells[col] > 0:
                 willEmit[col] = bool(random.random() < self.randomization)
-        for col in self.updateOrder():
+        updateCols = self.updateOrder()
+        for col in updateCols:
             # A node emits when:
             #       1) it was selected in last step,
             #       2) it's loaded*, 
@@ -60,7 +101,6 @@ class Nasch(TorroidalCA):
             #       2) and its neighbor is accepting^
             # * cell has message(s) in queue
             # ^ cell has space in queue for more messages
-            
             #Not going to emit if neighbor isn't accepting
             if self.getState(col+1) == self.maxPacketsForCell (col+1):
                 continue
@@ -68,6 +108,32 @@ class Nasch(TorroidalCA):
             emittingLink = self.ruleStr[col] == 'L' and self.getState(col) > 0
             if emittingNode or emittingLink:
                 self.emitMessageFrom(col)
+                """ Even with async updating, we can't allow a packet to skip multiple cells in one
+	            generation, since that could throw off our flux calculation. """
+                if self.asyncUpdate: updateCols.remove (self.wrapCell(col+1))
+        if self.countingFlux:
+            if self.fluxCount == self.fluxGenerations:
+                print "fluxValue: " + str (self.fluxValue)
+                if self.doingReport:
+                    if self.reportParam > self.reportParamEnd:
+                        self.doingReport = False
+                    else:
+                        reportFile = open (self.reportFilename + '.csv', 'a')
+                        reportFile.write (str(self.reportParam) + '\t' + str(self.fluxValue) + '\n')
+                        reportFile.close()
+                        self.reportParam += self.reportParamStep
+                        self.setParam (self.reportParamType, self.reportParam)                        
+                        self.beginFluxCount (200)
+                        print "wrote to file!"
+                else:
+                    self.countingFlux = False
+            else:
+				if self.fluxCellLast != self.getState (self.fluxCell):
+					self.fluxValue += (1.0/self.fluxGenerations)
+				self.fluxCellLast = self.getState (self.fluxCell)
+#				self.fluxValue += (1.0/self.fluxGenerations) * (self.cells[self.fluxCell] > 0)
+#				print "Adding: " + str((1.0/self.fluxGenerations) * (self.cells[self.fluxCell] > 0))
+				self.fluxCount += 1
     def doCount(self): #for debugging
     	count = 0
     	highState = 0
