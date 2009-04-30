@@ -85,9 +85,13 @@ class CAEnvironment(object):
         self.doneflag.set()
         try:
             self.e.join()
-        except RuntimeError:
+        except RuntimeError, e:
+            print e
+        try:
+            sys.exit()
+        except SystemExit:
+            # Keep quiet on exit
             pass
-        sys.exit()
 
     def sched(self, method, args=[]):
         self.tasks.append((method, args))
@@ -111,24 +115,28 @@ class CAEnvironment(object):
 
     def main(self, doneflag):
         try:
-            while not self.doneflag.isSet():
-                self.pop_external_tasks()
+            while not doneflag.isSet():
                 ## Update the simulation
                 self.display.update()
                 ## Blit the simulation surface to the root surface
                 self.G_Screen.blit(self.D_Screen,(0,0))
                 ## Wait until next timestep
-                self.doneflag.wait(float(self.delay)/1000)
+                doneflag.wait(float(self.delay)/1000)
         except:
             self.error("Exception in main loop")
-            self.quit()
+            self.sched(quit)
 
     def eventLoop(self, doneflag):
-        while not doneflag.isSet():
-            self.handleInput()
-            self.drawConsole()
-            self.doneflag.wait(0.016)
-            #pygame.time.wait(16)
+        try:
+            while not doneflag.isSet():
+                self.pop_external_tasks()
+                self.handleInput()
+                self.drawConsole()
+                doneflag.wait(0.016)
+                #pygame.time.wait(16)
+        except:
+            self.error("Exception in event loop")
+            self.quit()
 
     def handleInput(self):
         """Runs in its own thread"""
